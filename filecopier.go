@@ -18,7 +18,7 @@ Feel free to adapt this code for your own use case.
 //The three parameters to be read in.
 var dest, source, pattern *string
 
-var deleteEmpty, deleteEmptyBefore *bool //Option to delete empty directories in the destination if they would still be empty after the copy
+var deleteEmpty, deleteEmptyBefore, maintainOriginal *bool //Option to delete empty directories in the destination if they would still be empty after the copy, or keep older files
 
 //Counters for the number of files copied, directories skipped, those with no matching file found and the deleted empty directories.
 var copied, skipped, noMatch, deleted int
@@ -30,6 +30,7 @@ func main() {
 	pattern = flag.String("ext", "?older.*", "The file format to scan for, formatted as golang glob. Default \"?older.*\"")
 	deleteEmpty = flag.Bool("delete", false, "Deletes empty directories in the destination if it would remain empty after copying all matching files")
 	deleteEmptyBefore = flag.Bool("before", false, "Deletes directories in the destination that are empty BEFORE copying")
+	maintainOriginal = flag.Bool("maintain", false, "Does not overwrite files in the destination")
 	flag.Parse()
 
 	//Checks if the source and destination have been specified.
@@ -99,7 +100,7 @@ func visit(path string, f os.FileInfo, err error) error {
 						destinationPath := path + "\\" + fileDetails.Name()
 						destDet, err := os.Stat(destinationPath)
 
-						if os.IsNotExist(err) || destDet.ModTime().Before(fileDetails.ModTime()) {
+						if os.IsNotExist(err) || (!*maintainOriginal && destDet.ModTime().Before(fileDetails.ModTime())) {
 							//Opens the source file to copy
 							from, _ := os.Open(file)
 							defer from.Close()
